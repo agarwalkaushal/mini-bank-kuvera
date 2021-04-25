@@ -1,5 +1,7 @@
-from flask import Flask, request, jsonify
+import os
+import config
 from config import Config
+from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine, MetaData, Table, or_
 from sqlalchemy.orm import sessionmaker
@@ -8,9 +10,14 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from constants import no_special_character_regex, valid_email_regex, strong_password_regex
 from utils import decode_auth_token, encode_auth_token
 
+# Initialize app
 app = Flask(__name__)
-app.config.from_object(Config)
 
+# Setup environment
+env_config = os.getenv("APP_SETTINGS")
+app.config.from_object(env_config)
+
+# Fetch database uri
 DB_URI = app.config['SQLALCHEMY_DATABASE_URI']
 
 engine = create_engine(DB_URI)
