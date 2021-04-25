@@ -1,9 +1,8 @@
+import os
 from dotenv import load_dotenv
+
 load_dotenv()
 
-import os
-
 class Config(object):
-    SQLALCHEMY_TRACK_MODIFICATIONS = True
-    SECRET_KEY = os.urandom(24)
+    SECRET_KEY = os.environ['SECRET_KEY']
     SQLALCHEMY_DATABASE_URI = os.environ['DATABASE_URL']

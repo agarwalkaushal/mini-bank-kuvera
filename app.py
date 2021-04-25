@@ -1,11 +1,12 @@
-import re
 from flask import Flask, request, jsonify
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import create_engine, Table, MetaData, or_
+from sqlalchemy import create_engine, MetaData, Table, or_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash, check_password_hash
+from constants import no_special_character_regex, valid_email_regex, strong_password_regex
+from utils import decode_auth_token, encode_auth_token
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -16,7 +17,6 @@ engine = create_engine(DB_URI)
 metadata = MetaData(engine)
 Session = sessionmaker()
 Base = declarative_base()
-
 Session.configure(bind=engine)
 session = Session()
 
@@ -26,16 +26,8 @@ def hello():
     return "bar"
 
 
-no_special_character_regex = re.compile('[@_!#$%^&*()<>?/\|}{~:]')
-valid_email_regex = re.compile('^(\w|\.|\_|\-)+[@](\w|\_|\-|\.)+[.]\w{2,3}$')
-# 8 characters length, 1 letter in upper case, 1 special character, 1 numeral, 1 letter in lower case
-strong_password_regex = re.compile(
-    '^(?=.*[A-Z])(?=.*[@_!#$%^&*()<>?/\|}{~:])(?=.*[0-9])(?=.*[a-z]).{8}$')
-
-
 @app.route('/register', methods=["POST"])
 def register():
-
     username_input = request.args.get('username')
     email_input = request.args.get('email')
     users = Table('users', Base.metadata, autoload=True, autoload_with=engine)
@@ -66,8 +58,18 @@ def register():
 
 @app.route('/sign_in', methods=["GET", "POST"])
 def sign_in():
-    # TODO: return token in login, to authenticate apis
-    return jsonify({'message': 'Sign-in successful', 'token': 'dummy'})
+    username_input = request.args.get('username')
+    password_input = request.args.get('password')
+    users = Table('users', Base.metadata, autoload=True, autoload_with=engine)
+
+    user = session.query(users).filter_by(
+        username=username_input).first()
+
+    if user is not None and password_input and check_password_hash(user.password, password_input):
+        auth_token = encode_auth_token(user.id)
+        return jsonify({'signed_in': True, 'user_id': user.id, 'username': user.username, 'email': user.email, 'auth_token': auth_token})
+
+    return jsonify({'signed_in': False})
 
 
 if __name__ == "__main__":
