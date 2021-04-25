@@ -9,6 +9,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from werkzeug.security import generate_password_hash, check_password_hash
 from constants import no_special_character_regex, valid_email_regex, strong_password_regex
 from utils import decode_auth_token, encode_auth_token
+import datetime
 
 # Initialize app
 app = Flask(__name__)
@@ -28,6 +29,8 @@ Session.configure(bind=engine)
 session = Session()
 
 
+@app.route("/")
+@app.route("/index")
 @app.route("/foo")
 def hello():
     return "bar"
@@ -77,6 +80,39 @@ def sign_in():
         return jsonify({'signed_in': True, 'user_id': user.id, 'username': user.username, 'email': user.email, 'auth_token': auth_token})
 
     return jsonify({'signed_in': False})
+
+
+@app.route('/transact', methods=["POST"])
+def new_transaction():
+    auth_token = request.headers['authtoken']
+    user_id = decode_auth_token(auth_token)
+
+    if user_id.isnumeric() != True:
+        return jsonify({'message': user_id})
+
+    request_data = request.get_json()
+    transactions = Table('transactions', Base.metadata,
+                         autoload=True, autoload_with=engine)
+
+    last_transaction = session.query(transactions).filter_by(
+        u_id=user_id).order_by(transactions.columns.id.desc()).first()
+
+    amount = request_data['amount']
+    if last_transaction == None:
+        data = engine.execute(transactions.insert(), u_id=user_id, date_time=str(datetime.datetime.utcnow()),
+                              balance=amount, amount=amount)
+    else:
+        balance = last_transaction.balance + amount
+        data = engine.execute(transactions.insert(), u_id=user_id, date_time=str(datetime.datetime.utcnow()),
+                              balance=balance, amount=amount)
+
+    return jsonify({'message': 'Transaction successful', 'transaction_id': data.inserted_primary_key[0]})
+
+
+@app.route('/balance', methods=["GET"])
+def fetch_balance():
+    # TODO
+    return jsonify({'balance': 0})
 
 
 if __name__ == "__main__":
