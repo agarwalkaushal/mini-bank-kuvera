@@ -7,7 +7,7 @@ SECRET_KEY = Config.SECRET_KEY
 def decode_auth_token(auth_token):
     try:
         payload = jwt.decode(bytes.fromhex(auth_token), SECRET_KEY)
-        return payload['sub']
+        return str(payload['sub'])
     except jwt.ExpiredSignatureError:
         return 'Signature expired. Please log in again.'
     except jwt.InvalidTokenError:
