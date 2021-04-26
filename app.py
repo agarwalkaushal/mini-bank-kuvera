@@ -111,7 +111,22 @@ def new_transaction():
 
 @app.route('/balance', methods=["GET"])
 def fetch_balance():
-    # TODO
+    auth_token = request.headers['authtoken']
+    user_id = decode_auth_token(auth_token)
+
+    if user_id.isnumeric() != True:
+        return jsonify({'message': user_id})
+
+    request_data = request.get_json()
+    transactions = Table('transactions', Base.metadata,
+                         autoload=True, autoload_with=engine)
+
+    last_transaction = session.query(transactions).filter_by(
+        u_id=user_id).order_by(transactions.columns.id.desc()).first()
+
+    if last_transaction != None:
+        return jsonify({'balance': last_transaction.balance})
+
     return jsonify({'balance': 0})
 
 
