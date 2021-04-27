@@ -13,3 +13,5 @@ flask_cors
 psycopg2-binary
 python-dotenv
 pyjwt==1.4.2
+fpdf
+Flask-Mail
