@@ -119,7 +119,7 @@ def register():
     password_input = request.args.get('password')
     users_table = get_table('users')
     exists = session.query(users_table).filter(
-        or_(users.columns.username == username_input, users.columns.email == email_input)).first() is not None
+        or_(users_table.columns.username == username_input, users_table.columns.email == email_input)).first() is not None
 
     if exists:
         return jsonify({'message': 'User already registered'})
