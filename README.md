@@ -1,7 +1,11 @@
-# mini-bank
+# Kuvera Bank
 Mini banking system on Flask & PostgreSQL
 
-Test server :point_right: https://mini-bank-kuvera.herokuapp.com/foo
+> Test server :point_right: https://mini-bank-kuvera.herokuapp.com/foo
+
+> Postman collection :point_right: https://www.getpostman.com/collections/5d39c37dfa016bf3acf4
+
+# features
 
 > Register to Kuvera Bank
 
@@ -42,3 +46,6 @@ curl --location --request GET 'https://mini-bank-kuvera.herokuapp.com/transactio
 ```
 
 > CRON job (that runs every day) which sends statement to every registered user at month end
+
+
+
