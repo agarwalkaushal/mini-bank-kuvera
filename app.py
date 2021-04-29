@@ -3,14 +3,13 @@ import config
 from config import Config
 from flask import Flask, request, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import create_engine, MetaData, Table, or_
+from sqlalchemy import create_engine, MetaData, Table, or_, and_
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from werkzeug.security import generate_password_hash, check_password_hash
 from constants import no_special_character_regex, valid_email_regex, strong_password_regex
 from utils import decode_auth_token, encode_auth_token
 import datetime
-import calendar
 from fpdf import FPDF
 from flask_mail import Mail, Message
 import time
@@ -44,9 +43,8 @@ Session.configure(bind=engine)
 session = Session()
 
 
-def check_if_last_day_of_month(date):
-    last_day_of_month = calendar.monthrange(date.year, date.month)[1]
-    if date == datetime.date(date.year, date.month, last_day_of_month):
+def check_if_first_day_of_month(date):
+    if date.day == 1:
         return True
     return False
 
@@ -63,6 +61,23 @@ def get_last_transaction(transactions_table, user_id):
 def get_all_transactions_in_desc_order(transactions_table, user_id):
     return session.query(transactions_table).filter_by(
         u_id=user_id).order_by(transactions_table.columns.id.desc()).all()
+
+
+def get_last_months_transactions_in_desc_order(transactions_table, user_id):
+    now = datetime.datetime.now()
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    first_day_of_last_month = now.replace(
+        hour=0, minute=0, second=0, microsecond=0)
+
+    if today.month == 1:
+        first_day_of_last_month = now.replace(
+            year=now.year - 1, month=12, hour=0, minute=0, second=0, microsecond=0)
+    else:
+        first_day_of_last_month = now.replace(
+            month=now.month-1, hour=0, minute=0, second=0, microsecond=0)
+
+    return session.query(transactions_table).filter(and_(
+        transactions_table.columns.u_id == user_id, transactions_table.columns.date_time < str(today),  transactions_table.columns.date_time >= str(first_day_of_last_month))).order_by(transactions_table.columns.id.desc()).all()
 
 
 def send_statement_to_user(user, transactions_data):
@@ -252,13 +267,13 @@ def transaction_statement():
 
 def generate_statements():
     with app.app_context():
-        if check_if_last_day_of_month(datetime.datetime.now()):
+        if check_if_first_day_of_month(datetime.datetime.now()):
             transactions_table = get_table('transactions')
             users_table = get_table('users')
             users_data = session.query(users_table).all()
             if len(users_data) > 0:
                 for user in users_data:
-                    transactions_data = get_all_transactions_in_desc_order(
+                    transactions_data = get_last_months_transactions_in_desc_order(
                         transactions_table, user.id)
                     if len(transactions_data) == 0:
                         continue
